@@ -53,22 +53,124 @@ This system reduces time-to-triage while enforcing:
 ---
 
 ## Architecture
-Ingestion
-↓
-Event Store ──→ Detection & Grouping
-↓ ↓
-Knowledge Base Incident Objects
-↓ ↓
-Retrieval Layer ──→ Evidence Bundles
-↓
-Multi-Agent System
-(Analyst → Critic → Planner → Executor → Auditor)
-↓
-Actions / Summaries / Escalations
-↓
-Human Review + Feedback
-↓
-Evaluation & Monitoring
+
+The system is designed as a modular, end-to-end pipeline that mirrors how agentic systems operate in real production environments. Each layer is independently testable, observable, and replaceable.
+
+```text
+┌────────────────────┐
+│   Data Ingestion   │
+│  (Batch / Events)  │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│     Event Store    │
+│ (Metrics / Logs /  │
+│  Traces / Labels)  │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Incident Detection │
+│ & Grouping Engine  │
+│ (Stats + Rules)    │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│  Knowledge Base    │
+│ (Runbooks, Past    │
+│  Incidents, Docs)  │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Retrieval Layer    │
+│ (Lexical + Embed)  │
+└─────────┬──────────┘
+          ↓
+┌────────────────────────────────────────────┐
+│          Evidence Bundle Generator         │
+│ (Facts, Snippets, Sources, Confidence)     │
+└─────────┬──────────────────────────────────┘
+          ↓
+┌────────────────────────────────────────────┐
+│            Multi-Agent System              │
+│                                            │
+│  ┌─────────┐   ┌─────────┐   ┌─────────┐   │
+│  │ Analyst │ → │ Critic  │ → │ Planner │   │
+│  └─────────┘   └─────────┘   └─────────┘   │
+│          ↓                    ↑            │
+│      ┌─────────┐      ┌─────────┐          │
+│      │Executor │  ←   │ Auditor │          │
+│      └─────────┘      └─────────┘          │
+└─────────┬──────────────────────────────────┘
+          ↓
+┌────────────────────┐
+│ Actions / Summaries│
+│ Escalations        │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Human Review &     │
+│ Feedback Loop      │
+└─────────┬──────────┘
+          ↓
+┌────────────────────┐
+│ Evaluation &       │
+│ Monitoring         │
+└────────────────────┘
+```
+### Component Responsibilities
+
+#### Data Ingestion
+- Batch loaders and synthetic data generators  
+- Schema validation and data quality checks  
+- Handles missing, delayed, and noisy events  
+
+#### Event Store
+- Normalized storage for metrics, logs, and traces  
+- Time-indexed for efficient querying  
+- Serves as the source of truth for downstream systems  
+
+#### Incident Detection & Grouping
+- Statistical baselines and heuristic-based detection  
+- Change-point and anomaly detection methods  
+- Groups related events into candidate incidents  
+
+#### Knowledge Base
+- Runbooks and operational documentation  
+- Historical incident summaries  
+- Catalog of known failure modes and remediation patterns  
+
+#### Retrieval Layer
+- Hybrid retrieval (lexical + embedding-based)  
+- Chunking and reranking strategies  
+- Optimized for high recall with precision controls  
+
+#### Evidence Bundle Generator
+- Aggregates retrieved facts and contextual snippets  
+- Assigns confidence scores and provenance metadata  
+- Enforces strict evidence referencing for all claims  
+
+#### Multi-Agent System
+- **Analyst:** proposes diagnoses and hypotheses  
+- **Critic:** challenges assumptions and identifies gaps  
+- **Planner:** ranks actions by expected information gain  
+- **Executor:** safely invokes tools (read-only by default)  
+- **Auditor:** validates outputs, logs decisions, tracks confidence  
+
+#### Actions & Escalation
+- Produces structured summaries and action plans  
+- Signals uncertainty explicitly  
+- Escalates to human review when confidence is low  
+
+#### Human Review & Feedback
+- Approval, correction, and annotation workflows  
+- Captures feedback signals for evaluation and learning  
+- Enables continuous system improvement  
+
+#### Evaluation & Monitoring
+- Offline benchmarks and regression testing  
+- Live quality, cost, and latency metrics  
+- Disagreement tracking and drift-like indicators  
+
 
 ---
 
